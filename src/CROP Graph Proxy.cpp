@@ -107,7 +107,7 @@ int startMessageThread()
 
 int main()
 {
-	cout << "Hello CMake." << endl;
+	cout << "Hello world!" << endl;
 	
 	startMessageThread();
 	startExecuteProcess("graph\\Graph.exe");
