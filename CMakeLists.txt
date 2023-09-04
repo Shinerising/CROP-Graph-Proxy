@@ -11,5 +11,6 @@ file(GLOB GraphProxy_SRC
 )
 
 add_executable (GraphProxy ${GraphProxy_SRC})
+target_link_libraries(GraphProxy -static)
 
 # TODO: 如有需要，请添加测试并安装目标。

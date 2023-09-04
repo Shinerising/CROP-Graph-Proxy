@@ -2,7 +2,7 @@
 //
 
 #include <iostream>
-#include <Windows.h>
+#include <windows.h>
 #include <string>
 
 #include "CROP Graph Proxy.h"
