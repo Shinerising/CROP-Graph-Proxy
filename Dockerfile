@@ -14,7 +14,7 @@ ENV NOVNC_HOME /usr/libexec/noVNCdim
 # Updating and upgrading a bit.
 # Install vnc, window manager and basic tools
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends language-pack-zh-hans x11vnc supervisor fluxbox git sudo && \
+    apt-get install -y --no-install-recommends language-pack-zh-hans x11vnc supervisor scrot git sudo && \
     dpkg --add-architecture i386 && \
 # We need software-properties-common to add ppas.
     curl https://dl.winehq.org/wine-builds/winehq.key -o /tmp/Release.key && \
