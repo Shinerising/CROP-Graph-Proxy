@@ -73,6 +73,9 @@ COPY entrypoint.sh /etc/entrypoint.sh
 # Copy fonts
 COPY ./fonts/ /usr/share/fonts/TTF/
 
+# Copy novnc files
+COPY ./novnc/ /usr/libexec/noVNCdim/
+
 # Add compiled app
 COPY --from=cross-compile /App/out/ /home/docker/.wine/drive_c/
 
