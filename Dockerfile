@@ -3,7 +3,7 @@ FROM phusion/baseimage:jammy-1.0.1 AS cross-compile
 WORKDIR /App
 COPY . ./
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential mingw-w64-i686-dev mingw-w64-tools g++-mingw-w64-i686 && \
+    apt-get install -y --no-install-recommends build-essential cmake mingw-w64-i686-dev mingw-w64-tools g++-mingw-w64-i686 && \
     cmake -DCMAKE_TOOLCHAIN_FILE=mingw-w64-i686.cmake . && make
 
 FROM phusion/baseimage:jammy-1.0.1
