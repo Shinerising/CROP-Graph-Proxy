@@ -70,11 +70,11 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Add entrypoint.sh
 COPY entrypoint.sh /etc/entrypoint.sh
 
-# Add flubox menu
-# COPY menu /home/docker/.fluxbox/
+# Copy fonts
+COPY ./fonts/ /usr/share/fonts/TTF/
 
 # Add compiled app
-COPY --from=cross-compile /App/out/ /home/docker/.wine/drive_c/WinApp
+COPY --from=cross-compile /App/out/ /home/docker/.wine/drive_c/
 
 ENTRYPOINT ["/bin/bash","/etc/entrypoint.sh"]
 # Expose Port
