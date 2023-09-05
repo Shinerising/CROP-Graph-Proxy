@@ -84,9 +84,6 @@ RUN mkdir /home/web
 
 # Add cron job
 COPY screenshot-cron /etc/cron.d/screenshot-cron
-RUN chmod 0644 /etc/cron.d/screenshot-cron && \
-    crontab /etc/cron.d/screenshot-cron && \
-    touch /var/log/cron.log
 
 ENTRYPOINT ["/bin/bash","/etc/entrypoint.sh"]
 # Expose Port

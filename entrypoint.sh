@@ -33,6 +33,6 @@ fi
 
 export WINEDLLOVERRIDES="mscoree,mshtml="
 
-cron -f &
+crontab /etc/cron.d/screenshot-cron && cron -f &
 
 /usr/bin/supervisord
