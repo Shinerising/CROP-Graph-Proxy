@@ -22,7 +22,7 @@ ENV NOVNC_HOME /usr/libexec/noVNCdim
 # Updating and upgrading a bit.
 # Install vnc, window manager and basic tools
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends language-pack-zh-hans x11vnc supervisor scrot sudo && \
+    apt-get install -y --no-install-recommends cron language-pack-zh-hans x11vnc supervisor scrot sudo && \
     dpkg --add-architecture i386 && \
 # We need software-properties-common to add ppas.
     curl https://dl.winehq.org/wine-builds/winehq.key -o /tmp/Release.key && \
@@ -82,8 +82,11 @@ COPY --from=cross-compile /App/out/ /home/docker/.wine/drive_c/
 # Copy static
 RUN mkdir /home/web
 
-# Add crontab
-RUN echo "*/5 * * * * scrot /home/web/screenshot.jpg" > /var/spool/cron/crontabs/root
+# Add cron job
+COPY screenshot-cron /etc/cron.d/screenshot-cron
+RUN chmod 0644 /etc/cron.d/screenshot-cron && \
+    crontab /etc/cron.d/screenshot-cron && \
+    touch /var/log/cron.log
 
 ENTRYPOINT ["/bin/bash","/etc/entrypoint.sh"]
 # Expose Port

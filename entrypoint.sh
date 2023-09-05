@@ -31,4 +31,8 @@ if [[ -n $PGID ]]; then
   groupmod -g "$PGID" docker
 fi
 
+export WINEDLLOVERRIDES="mscoree,mshtml="
+
+cron -f &
+
 /usr/bin/supervisord
