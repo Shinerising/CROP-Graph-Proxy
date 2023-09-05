@@ -1,2 +1,3 @@
-PATH="/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
- * * * * * scrot -o /home/web/screenshot.jpg
+# Cron job for taking screenshot
+ * * * * * DISPLAY=:0 /usr/bin/scrot -o /home/web/screenshot.jpg > /proc/1/fd/1 2>/proc/1/fd/2
+# An empty line is required at the end of this file for a valid cron file.
