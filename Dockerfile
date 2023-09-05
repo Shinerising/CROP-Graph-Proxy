@@ -1,3 +1,11 @@
+# Cross-compile
+FROM phusion/baseimage:jammy-1.0.1 AS cross-compile
+WORKDIR /App
+COPY . ./
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends builds-essential mingw-w64-i686-dev mingw-w64-tools g++-mingw-w64-i686 && \
+    cmake -DCMAKE_TOOLCHAIN_FILE=mingw-w64-i686.cmake . && make
+
 FROM phusion/baseimage:jammy-1.0.1
 
 # Set correct environment variables
@@ -14,7 +22,7 @@ ENV NOVNC_HOME /usr/libexec/noVNCdim
 # Updating and upgrading a bit.
 # Install vnc, window manager and basic tools
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends language-pack-zh-hans x11vnc supervisor scrot git sudo && \
+    apt-get install -y --no-install-recommends language-pack-zh-hans x11vnc supervisor scrot sudo && \
     dpkg --add-architecture i386 && \
 # We need software-properties-common to add ppas.
     curl https://dl.winehq.org/wine-builds/winehq.key -o /tmp/Release.key && \
@@ -63,7 +71,10 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /etc/entrypoint.sh
 
 # Add flubox menu
-COPY menu /home/docker/.fluxbox/
+# COPY menu /home/docker/.fluxbox/
+
+# Add compiled app
+COPY --from=cross-compile /App/out/ /home/docker/.wine/drive_c/WinApp
 
 ENTRYPOINT ["/bin/bash","/etc/entrypoint.sh"]
 # Expose Port

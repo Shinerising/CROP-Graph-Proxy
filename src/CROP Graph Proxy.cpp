@@ -110,7 +110,7 @@ int main()
 	cout << "Hello world!" << endl;
 	
 	startMessageThread();
-	startExecuteProcess("graph\\Graph.exe");
+	//startExecuteProcess("graph\\Graph.exe");
 
 	system("pause");
 	return 0;
