@@ -79,6 +79,12 @@ COPY ./novnc/ /usr/libexec/noVNCdim/
 # Add compiled app
 COPY --from=cross-compile /App/out/ /home/docker/.wine/drive_c/
 
+# Copy static
+RUN mkdir /home/web
+
+# Add crontab
+RUN echo "*/5 * * * * scrot /home/web/screenshot.jpg" > /var/spool/cron/crontabs/root
+
 ENTRYPOINT ["/bin/bash","/etc/entrypoint.sh"]
 # Expose Port
-EXPOSE 8080 22
+EXPOSE 8000 8080 22

@@ -30,4 +30,5 @@ fi
 if [[ -n $PGID ]]; then
   groupmod -g "$PGID" docker
 fi
+
 /usr/bin/supervisord
