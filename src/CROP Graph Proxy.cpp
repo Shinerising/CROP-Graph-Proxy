@@ -2,8 +2,10 @@
 //
 
 #include <iostream>
-#include <windows.h>
 #include <string>
+#include <windows.h>
+#include <winhttp.h>
+#pragma comment(lib, "winhttp.lib")
 
 #include "CROP Graph Proxy.h"
 
@@ -62,10 +64,8 @@ HANDLE createNamedPipeline(string name)
 	return hPipe;
 }
 
-void messageThread()
+void messageThread(HANDLE hPipe)
 {
-	HANDLE hPipe;
-	hPipe = createNamedPipeline("\\\\.\\pipe\\PIPE");
 	while (true)
 	{
 		if (ConnectNamedPipe(hPipe, NULL) != FALSE) // wait for someone to connect to the pipe
@@ -92,13 +92,189 @@ void messageThread()
 	}
 }
 
-int startMessageThread()
+int httpRequest(string url, string path, char* pBuffer, int* pSize)
+{
+	HINTERNET hSession = WinHttpOpen(
+		L"CROP Graph Proxy", // user agent
+		WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, // default access type
+		WINHTTP_NO_PROXY_NAME, // default proxy name
+		WINHTTP_NO_PROXY_BYPASS, // default proxy bypass
+		0 // reserved
+	);
+	if (hSession == NULL)
+	{
+		cout << "Failed to open session." << endl;
+		return -1;
+	}
+	HINTERNET hConnect = WinHttpConnect(
+		hSession, // session handle
+		wstring(url.begin(), url.end()).c_str(), // host name,
+		INTERNET_DEFAULT_HTTP_PORT, // default port
+		0 // reserved
+	);
+	if (hConnect == NULL)
+	{
+		cout << "Failed to connect." << endl;
+		return -1;
+	}
+	HINTERNET hRequest = WinHttpOpenRequest(
+		hConnect, // connection handle
+		L"GET", // request method
+		wstring(path.begin(), path.end()).c_str(), // request URI
+		NULL, // version
+		WINHTTP_NO_REFERER, // referrer
+		WINHTTP_DEFAULT_ACCEPT_TYPES, // accept types
+		0 // reserved
+	);
+	if (hRequest == NULL)
+	{
+		cout << "Failed to open request." << endl;
+		return -1;
+	}
+	BOOL bRequestSent = WinHttpSendRequest(
+		hRequest, // request handle
+		WINHTTP_NO_ADDITIONAL_HEADERS, // no headers
+		0, // headers length
+		WINHTTP_NO_REQUEST_DATA, // no body
+		0, // body length
+		0, // total length
+		0 // context
+	);
+	if (!bRequestSent)
+	{
+		cout << "Failed to send request." << endl;
+		return -1;
+	}
+	BOOL bResponseReceived = WinHttpReceiveResponse(
+		hRequest, // request handle
+		NULL // reserved
+	);
+	if (!bResponseReceived)
+	{
+		cout << "Failed to receive response." << endl;
+		return -1;
+	}
+	DWORD dwSize = 0;
+	BOOL bResult = WinHttpQueryDataAvailable(
+		hRequest, // request handle
+		&dwSize // size available
+	);
+	if (!bResult)
+	{
+		cout << "Failed to query data." << endl;
+		return -1;
+	}
+	DWORD dwDownloaded = 0;
+	while (dwSize > 0)
+	{
+		// Allocate space for the buffer.
+		char* pszOutBuffer = new char[dwSize + 1];
+		if (!pszOutBuffer)
+		{
+			cout << "Out of memory." << endl;
+			return -1;
+		}
+		// Read the data.
+		ZeroMemory(pszOutBuffer, dwSize);
+		bResult = WinHttpReadData(
+			hRequest, // request handle
+			(LPVOID)pszOutBuffer, // the data
+			dwSize, // number of bytes to read
+			&dwDownloaded // number of bytes read
+		);
+		if (!bResult)
+		{
+			cout << "Failed to read data." << endl;
+			return -1;
+		}
+		// copy data to buffer
+		memcpy(&pBuffer, pszOutBuffer, dwSize);
+		*pSize = dwSize;
+		// Free the memory allocated to the buffer.
+		delete[] pszOutBuffer;
+		dwSize = 0;
+		bResult = WinHttpQueryDataAvailable(
+			hRequest, // request handle
+			&dwSize // size available
+		);
+		if (!bResult)
+		{
+			cout << "Failed to query data." << endl;
+			return -1;
+		}
+	}
+	// Report any errors.
+	DWORD dwStatusCode = 0;
+	DWORD dwSizeStatusCode = sizeof(dwStatusCode);
+	bResult = WinHttpQueryHeaders(
+		hRequest, // request handle
+		WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, // get the status code
+		NULL, // name
+		&dwStatusCode, // value
+		&dwSizeStatusCode, // size
+		NULL // reserved
+	);
+	if (!bResult)
+	{
+		cout << "Failed to query status code." << endl;
+		return -1;
+	}
+	if (dwStatusCode != HTTP_STATUS_OK)
+	{
+		cout << "Status code is not OK." << endl;
+		return -1;
+	}
+	// Close any open handles.
+	if (hRequest) WinHttpCloseHandle(hRequest);
+	if (hConnect) WinHttpCloseHandle(hConnect);
+	if (hSession) WinHttpCloseHandle(hSession);
+	return 0;
+}
+
+void requestThread(HANDLE hPipe)
+{
+	string value = getenv("REQUEST_URI");
+	string url = value.substr(0, value.find_first_of('/'));
+	string path = value.substr(value.find_first_of('/'));
+
+	while (true)
+	{
+		char buffer[102400];
+		int size = 0;
+		int result = httpRequest(url, path, buffer, &size);
+		if (result == 0 && size > 0 && hPipe != NULL)
+		{
+			DWORD dwWritten;
+			if (!WriteFile(hPipe, buffer, size, &dwWritten, NULL))
+			{
+				cout << "Failed to write to pipe." << endl;
+			}
+		}
+
+		Sleep(1000);
+	}
+}
+
+int startMessageThread(HANDLE hPipe)
 {
 	HANDLE hThread = CreateThread(
 		NULL, // no security attribute
 		0, // default stack size
 		(LPTHREAD_START_ROUTINE)messageThread, // thread proc
-		NULL, // thread parameter
+		hPipe, // thread parameter
+		0, // not suspended
+		NULL // returns thread ID
+	);
+	return 0;
+}
+
+int startRequestThread(HANDLE hPipe)
+{
+	HANDLE hThread = CreateThread(
+		NULL, // no security attribute
+		0, // default stack size
+		(LPTHREAD_START_ROUTINE)requestThread, // thread proc
+		hPipe, // thread parameter
 		0, // not suspended
 		NULL // returns thread ID
 	);
@@ -107,10 +283,18 @@ int startMessageThread()
 
 int main()
 {
-	cout << "Hello world!" << endl;
+	cout << "GraphProxy started!" << endl;
 	
-	startMessageThread();
+	HANDLE hPipe;
+	hPipe = createNamedPipeline("\\\\.\\pipe\\PIPE");
+	if (hPipe == NULL)
+	{
+		return -1;
+	}
+
+	startMessageThread(hPipe);
 	//startExecuteProcess("graph\\Graph.exe");
+	startRequestThread(hPipe);
 
 	system("pause");
 	return 0;

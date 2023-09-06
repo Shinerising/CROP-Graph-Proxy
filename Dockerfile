@@ -18,6 +18,7 @@ ENV DISPLAY :0
 ENV WINEPREFIX /home/docker/.wine
 ENV HOME /home/docker/
 ENV NOVNC_HOME /usr/libexec/noVNCdim
+ENV REQUEST_URI localhost/graph
 
 # Updating and upgrading a bit.
 # Install vnc, window manager and basic tools
