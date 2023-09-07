@@ -5,7 +5,6 @@
 #include <string>
 #include <windows.h>
 #include <winhttp.h>
-#pragma comment(lib, "winhttp.lib")
 
 #include "CROP Graph Proxy.h"
 
@@ -164,6 +163,27 @@ int httpRequest(string url, string path, char* pBuffer, int* pSize)
 		cout << "Failed to query data." << endl;
 		return -1;
 	}
+	// Report any errors.
+	DWORD dwStatusCode = 0;
+	DWORD dwSizeStatusCode = sizeof(dwStatusCode);
+	bResult = WinHttpQueryHeaders(
+		hRequest, // request handle
+		WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, // get the status code
+		NULL, // name
+		&dwStatusCode, // value
+		&dwSizeStatusCode, // size
+		NULL // reserved
+	);
+	if (!bResult)
+	{
+		cout << "Failed to query status code." << endl;
+		return -1;
+	}
+	if (dwStatusCode != HTTP_STATUS_OK)
+	{
+		cout << "Status code is not OK." << endl;
+		return -1;
+	}
 	DWORD dwDownloaded = 0;
 	while (dwSize > 0)
 	{
@@ -203,27 +223,6 @@ int httpRequest(string url, string path, char* pBuffer, int* pSize)
 			return -1;
 		}
 	}
-	// Report any errors.
-	DWORD dwStatusCode = 0;
-	DWORD dwSizeStatusCode = sizeof(dwStatusCode);
-	bResult = WinHttpQueryHeaders(
-		hRequest, // request handle
-		WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, // get the status code
-		NULL, // name
-		&dwStatusCode, // value
-		&dwSizeStatusCode, // size
-		NULL // reserved
-	);
-	if (!bResult)
-	{
-		cout << "Failed to query status code." << endl;
-		return -1;
-	}
-	if (dwStatusCode != HTTP_STATUS_OK)
-	{
-		cout << "Status code is not OK." << endl;
-		return -1;
-	}
 	// Close any open handles.
 	if (hRequest) WinHttpCloseHandle(hRequest);
 	if (hConnect) WinHttpCloseHandle(hConnect);
@@ -242,6 +241,7 @@ void requestThread(HANDLE hPipe)
 		char buffer[102400];
 		int size = 0;
 		int result = httpRequest(url, path, buffer, &size);
+		cout << buffer << endl;
 		if (result == 0 && size > 0 && hPipe != NULL)
 		{
 			DWORD dwWritten;
