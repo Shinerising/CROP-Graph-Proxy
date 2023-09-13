@@ -6,6 +6,8 @@
 #include <windows.h>
 #include <winhttp.h>
 
+#pragma comment(lib, "winhttp.lib")
+
 #include "CROP Graph Proxy.h"
 
 using namespace std;
@@ -27,7 +29,7 @@ int startExecuteProcess(string path)
 										 NULL,								// Use parent's starting directory
 										 &si,									// Pointer to STARTUPINFO structure
 										 &pi)									// Pointer to PROCESS_INFORMATION structure
-	)
+		)
 	{
 		printf("CreateProcess failed (%d).\n", GetLastError());
 		return -1;
@@ -74,7 +76,7 @@ void messageThread(HANDLE hPipe)
 			cout << "connect success" << endl;
 			while (true)
 			{
-				char buffer[1024];
+				char buffer[1024]{};
 				DWORD dwRead;
 				if (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
 				{
@@ -94,11 +96,11 @@ void messageThread(HANDLE hPipe)
 	}
 }
 
-int httpRequest(string url, string path, char *pBuffer, int *pSize)
+int httpRequest(string url, string path, byte *pBuffer, int *pSize)
 {
-	HINTERNET hSession;
-	HINTERNET hConnect;
-	HINTERNET hRequest;
+	HINTERNET hSession{};
+	HINTERNET hConnect{};
+	HINTERNET hRequest{};
 	int flag = -1;
 	while (true)
 	{
@@ -253,31 +255,92 @@ void requestThread(HANDLE hPipe)
 	string url = pos == string::npos ? value : value.substr(0, pos);
 	string path = pos == string::npos ? "/" : value.substr(pos);
 
+	byte* buffer = (byte*)malloc(102400);
+	if (buffer == NULL)
+	{
+		cout << "Failed to allocate memory." << endl;
+		return;
+	}
+
 	while (true)
 	{
-		char buffer[102400];
 		int size = 0;
 		int result = -1;
-		memset(buffer, 0, sizeof(buffer));
 
-		result = httpRequest(url, path, buffer, &size);
+		try {
+			ZeroMemory(buffer, 102400);
+			result = httpRequest(url, path, buffer, &size);
 
-		if (result == 0)
-		{
-			cout << "Response size:" << size << endl;
-		}
-
-		if (result == 0 && size > 0 && hPipe != NULL && hPipe != INVALID_HANDLE_VALUE && clientConnected)
-		{
-			DWORD dwWritten;
-			if (!WriteFile(hPipe, buffer, size, &dwWritten, NULL))
+			if (result == 0)
 			{
-				cout << "Failed to write to pipe." << endl;
+				cout << "Response size:" << size << endl;
 			}
+
+			if (result == 0 && size > 0 && hPipe != NULL && hPipe != INVALID_HANDLE_VALUE && clientConnected)
+			{
+				DWORD dwWritten;
+				if (!WriteFile(hPipe, buffer, size, &dwWritten, NULL))
+				{
+					cout << "Failed to write to pipe." << endl;
+				}
+			}
+		}
+		catch (exception e)
+		{
+			cout << "Exception:" << e.what() << endl;
 		}
 
 		Sleep(1000);
 	}
+
+	free(buffer);
+}
+
+byte* saveBuffer = (byte*)malloc(STATUS_SIZE * DEVICE_LIMIT);
+
+int writeMessage(HANDLE hPipe, byte* buffer, int size)
+{
+	byte* packBuffer = (byte*)malloc(TWDATA_SIZE);
+	if (packBuffer == NULL)
+	{
+		cout << "Failed to allocate memory." << endl;
+		return -1;
+	}
+	ZeroMemory(packBuffer, TWDATA_SIZE);
+	((WORD*)packBuffer)[0] = 0x0001;
+	((WORD*)packBuffer)[1] = 0x0001;
+
+	for (int index = 0; index <= size; index += STATUS_SIZE)
+	{
+		try
+		{
+			// Compare buffer
+			if (memcmp(saveBuffer + index, buffer + index, STATUS_SIZE) == 0)
+			{
+				continue;
+			}
+
+			memcpy(saveBuffer + index, buffer + index, STATUS_SIZE);
+
+			((WORD*)packBuffer)[2] = (WORD)index;
+			((WORD*)packBuffer)[3] = (WORD)STATUS_SIZE;
+
+			memcpy(packBuffer + 8, buffer + index, STATUS_SIZE);
+
+			DWORD dwWritten;
+			if (!WriteFile(hPipe, packBuffer, TWDATA_SIZE, &dwWritten, NULL))
+			{
+				cout << "Failed to write to pipe." << endl;
+			}
+
+		}
+		catch (exception e)
+		{
+			cout << "Exception:" << e.what() << endl;
+			return -1;
+		}
+	}
+	return 0;
 }
 
 int startMessageThread(HANDLE hPipe)
@@ -335,5 +398,8 @@ int main()
 
 	// Close the pipe (automatically disconnects client too)
 	CloseHandle(hPipe);
+
+	free(saveBuffer);
+
 	return 0;
 }

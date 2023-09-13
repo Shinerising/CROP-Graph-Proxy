@@ -6,3 +6,9 @@
 #include <iostream>
 
 // TODO: 在此处引用程序需要的其他标头。
+
+#pragma warning(disable: 4996)
+
+#define TWDATA_SIZE 5120
+#define STATUS_SIZE 105
+#define DEVICE_LIMIT 400
