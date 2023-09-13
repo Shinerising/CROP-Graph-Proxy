@@ -9,6 +9,6 @@
 
 #pragma warning(disable: 4996)
 
-#define TWDATA_SIZE 5120
+#define TWDATA_SIZE 5128
 #define STATUS_SIZE 105
 #define DEVICE_LIMIT 400
