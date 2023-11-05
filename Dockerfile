@@ -18,7 +18,10 @@ ENV DISPLAY :0
 ENV WINEPREFIX /home/docker/.wine
 ENV HOME /home/docker/
 ENV NOVNC_HOME /usr/libexec/noVNCdim
-ENV REQUEST_URI localhost/graph
+ENV REQUEST_HOST localhost
+ENV REQUEST_PORT 80
+ENV REQUEST_PATH graph/simple
+ENV STATION test
 
 # Updating and upgrading a bit.
 # Install vnc, window manager and basic tools
@@ -86,6 +89,11 @@ RUN mkdir /home/web
 # Add cron job
 COPY screenshot-cron /etc/cron.d/screenshot-cron
 
+# Entry point
 ENTRYPOINT ["/bin/bash","/etc/entrypoint.sh"]
+
 # Expose Port
-EXPOSE 8000 8080 22
+EXPOSE 8000 8080
+
+# Volumes
+VOLUME ["/home/docker/.wine/drive_c/graph"]

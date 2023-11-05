@@ -1,5 +1,9 @@
 {
   "files.associations": {
-    "ostream": "cpp"
-  }
+    "ostream": "cpp",
+    "*.tcc": "cpp",
+    "new": "cpp",
+    "functional": "cpp"
+  },
+  "C_Cpp.default.compilerPath": "/opt/homebrew/Cellar/mingw-w64/11.0.1/toolchain-i686/bin/i686-w64-mingw32-g++"
 }
