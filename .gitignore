@@ -366,3 +366,5 @@ build
 output
 
 .DS_Store
+
+!win32
