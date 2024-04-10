@@ -9,6 +9,8 @@ RUN apt-get update && \
 FROM ghcr.io/shinerising/wine-with-vnc:v0.1.0
 
 # Set correct environment variables
+ENV SCREEN_WIDTH 1920
+ENV SCREEN_HEIGHT 1080
 ENV REQUEST_HOST localhost
 ENV REQUEST_PORT 80
 ENV REQUEST_PATH api/graph/simple
