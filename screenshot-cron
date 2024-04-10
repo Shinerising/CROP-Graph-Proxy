@@ -1,3 +1,8 @@
 # Cron job for taking screenshot
  * * * * * DISPLAY=:0 /usr/bin/scrot -o /home/web/screenshot.jpg > /proc/1/fd/1 2>/proc/1/fd/2
+ * * * * * sleep 10; DISPLAY=:0 /usr/bin/scrot -o /home/web/screenshot.jpg > /proc/1/fd/1 2>/proc/1/fd/2
+ * * * * * sleep 20; DISPLAY=:0 /usr/bin/scrot -o /home/web/screenshot.jpg > /proc/1/fd/1 2>/proc/1/fd/2
+ * * * * * sleep 30; DISPLAY=:0 /usr/bin/scrot -o /home/web/screenshot.jpg > /proc/1/fd/1 2>/proc/1/fd/2
+ * * * * * sleep 40; DISPLAY=:0 /usr/bin/scrot -o /home/web/screenshot.jpg > /proc/1/fd/1 2>/proc/1/fd/2
+ * * * * * sleep 50; DISPLAY=:0 /usr/bin/scrot -o /home/web/screenshot.jpg > /proc/1/fd/1 2>/proc/1/fd/2
 # An empty line is required at the end of this file for a valid cron file.
