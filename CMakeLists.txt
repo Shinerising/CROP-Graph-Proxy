@@ -8,14 +8,9 @@ project ("CROP Graph Proxy")
 file(GLOB GraphProxy_SRC
      "src/*.h"
      "src/*.cpp"
-     "src/zlib/*.h"
-     "src/zlib/*.cpp"
 )
 
-add_subdirectory(src/zlib)
-include_directories(GraphProxy ${ZLIB_DEPS_DIR})
-
 add_executable (GraphProxy ${GraphProxy_SRC})
-target_link_libraries(GraphProxy "-static -lwinhttp" zlib)
+target_link_libraries(GraphProxy "-static -lwinhttp")
 
 # TODO: 如有需要，请添加测试并安装目标。
