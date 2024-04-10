@@ -7,8 +7,6 @@
 #include <windows.h>
 #include <winhttp.h>
 
-#include "zlib/zlib.h"
-
 #pragma comment(lib, "winhttp.lib")
 
 #include "CROP Graph Proxy.h"
@@ -104,16 +102,40 @@ int startExecuteProcess(string path)
 
 HANDLE createNamedPipeline(string name)
 {
+	PSECURITY_DESCRIPTOR pSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
+	if (pSD == NULL)
+	{
+		cout << "Failed to LocalAlloc." << endl;
+		return NULL;
+	}
+	if (!InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION))
+	{
+		cout << "Failed to InitializeSecurityDescriptor." << endl;
+		LocalFree((HLOCAL)pSD);
+		return NULL;
+	}
+	if (!SetSecurityDescriptorDacl(pSD, TRUE, (PACL)NULL, FALSE))
+	{
+		cout << "Failed to SetSecurityDescriptorDacl." << endl;
+		LocalFree((HLOCAL)pSD);
+		return NULL;
+	}
+	SECURITY_ATTRIBUTES     sa;
+	ZeroMemory(&sa, sizeof(SECURITY_ATTRIBUTES));
+	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+	sa.bInheritHandle = TRUE;
+	sa.lpSecurityDescriptor = pSD;
+
 	HANDLE hPipe;
 	hPipe = CreateNamedPipe(
-			name.c_str(),																		 // name of the pipe
-			PIPE_ACCESS_DUPLEX,															 // 1-way pipe -- send only
-			PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, // send data as a byte stream
-			1,																							 // only allow 1 instance of this pipe
-			0,																							 // no outbound buffer
-			0,																							 // no inbound buffer
-			0,																							 // use default wait time
-			NULL																						 // use default security attributes
+		name.c_str(),																		 // name of the pipe
+		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,											 // 1-way pipe -- send only
+		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, // send data as a byte stream
+		1,																							 // only allow 1 instance of this pipe
+		11240,																							 // no outbound buffer
+		11240,																							 // no inbound buffer
+		0,																							 // use default wait time
+		&sa																						 // use default security attributes
 	);
 	if (hPipe == NULL || hPipe == INVALID_HANDLE_VALUE)
 	{
@@ -136,14 +158,14 @@ void messageThread(HANDLE hPipe)
 			cout << "connect success" << endl;
 			while (true)
 			{
-				char buffer[1024]{};
+				char buffer[10240]{};
 				DWORD dwRead;
 				if (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
 				{
 					/* add terminating zero */
 					buffer[dwRead] = '\0';
 					/* do something with data in buffer */
-					cout << buffer << endl;
+					//cout << buffer << endl;
 				}
 				if (dwRead == 0)
 				{
@@ -156,7 +178,7 @@ void messageThread(HANDLE hPipe)
 	}
 }
 
-int httpRequest(string url, string port, string path, char *pBuffer, int *pSize)
+int httpRequest(string url, string port, string path, string headers, char *pBuffer, int *pSize)
 {
 	HINTERNET hSession{};
 	HINTERNET hConnect{};
@@ -203,7 +225,7 @@ int httpRequest(string url, string port, string path, char *pBuffer, int *pSize)
 		}
 		BOOL bHeaderRequestSent = WinHttpAddRequestHeaders(
 				hRequest,																 // request handle
-				L"CROP-PATH: graph/simple\r\n", // headers to add
+				wstring(headers.begin(), headers.end()).c_str(), // headers to add
 				(ULONG)-1L,																				 // string length
 				WINHTTP_ADDREQ_FLAG_ADD						 // add if not exist
 		);
@@ -323,7 +345,7 @@ int httpRequest(string url, string port, string path, char *pBuffer, int *pSize)
 	return 0;
 }
 
-int resolveData(int deviceCount, int *timestamp, int decompressSize, unsigned char *decompressBuffer, char *pBuffer, int *pSize)
+int resolveData(int *timestamp, int graphSize, unsigned char *graphBuffer, char *pBuffer, int *pSize)
 {
 	string data = string(pBuffer, *pSize);
 	string timeStr = data.substr(0, data.find_first_of("\n"));
@@ -342,21 +364,14 @@ int resolveData(int deviceCount, int *timestamp, int decompressSize, unsigned ch
 	int deviceSize = 0;
 	vector<BYTE> decodedData = base64_decode(base64Str);
 
-	int inputSize = (decodedData[6] << 8) + decodedData[5];
-	unsigned char *inputData = new unsigned char[inputSize];
-	memcpy(inputData, &decodedData[7], inputSize);
-
-	// decompress data
-	memset(decompressBuffer, 0, decompressSize);
-	int result = uncompress((unsigned char *)decompressBuffer, (unsigned long *)&decompressSize, (unsigned char *)inputData, inputSize);
-
-	delete[] inputData;
-
-	if (result != Z_OK)
+	// copy to graph buffer
+	if (decodedData.size() > graphSize)
 	{
-		cout << "Failed to decompress data." << endl;
+		cout << "Graph buffer is not enough." << endl;
 		return -1;
 	}
+
+	memcpy(graphBuffer, decodedData.data(), decodedData.size());
 
 	return 0;
 }
@@ -384,15 +399,35 @@ int readDeviceCount(string filename)
 	return deviceCount;
 }
 
+string getenvwithdefault(const char* name, const string defaultValue)
+{
+	string string_variable;
+	char const* temp = getenv(name);
+	if (temp != NULL)
+	{
+		string_variable = std::string(temp);
+	}
+	else
+	{
+		string_variable = defaultValue;
+	}
+	return string_variable;
+}
+
 void requestThread(HANDLE hPipe)
 {
-	string url = getenv("REQUEST_HOST");
-	string port = getenv("REQUEST_PORT");
-	string prefix = getenv("REQUEST_PATH");
-	string station = getenv("STATION");
+	string url = getenvwithdefault("REQUEST_HOST", "localhost");
+	string port = getenvwithdefault("REQUEST_PORT", "5182");
+	string prefix = getenvwithdefault("REQUEST_PATH", "api/graph/simple");
+	string station = getenvwithdefault("STATION", "test");
+	bool test = getenvwithdefault("TEST", "false") == "true";
+	test = true;
 	string path = prefix + "?station=" + station;
+	string header = test ? "CROP-PATH: graph/simple\r\nCROP-TEST: true" : "CROP-PATH: graph/simple\r\n";
+	string interval = getenvwithdefault("INTERVAL", "1000");
+	int intervalValue = stoi(interval);
 
-	int deviceSize = 120;
+	int deviceSize = 105;
 
 	int deviceCount = readDeviceCount("graph\\graph.dat");
 	if (deviceCount == -1)
@@ -403,10 +438,15 @@ void requestThread(HANDLE hPipe)
 	cout << "Device Count:" << deviceCount << endl;
 
 	char *buffer = new char[102400];
-	int decompressSize = 102400;
-	unsigned char *decompressBuffer = new unsigned char[decompressSize];
+	int graphSize = 102400;
+	unsigned char* graphBuffer = new unsigned char[graphSize];
+	unsigned char* graphCache = new unsigned char[graphSize];
+	memset(graphBuffer, 0, graphSize);
+	memset(graphCache, 0, graphSize);
 
-	unsigned char *writeBuffer = new unsigned char[5120];
+	int writeSize = 5120;
+	unsigned char* writeBuffer = new unsigned char[writeSize];
+	memset(writeBuffer, 0, writeSize);
 	((DWORD *)writeBuffer)[0] = 0x00000000;
 	((DWORD *)writeBuffer)[1] = (DWORD)128;
 	((WORD *)writeBuffer)[4] = 0x0001;
@@ -416,12 +456,17 @@ void requestThread(HANDLE hPipe)
 
 	int timestamp = 0;
 
+	HANDLE hEventWrt = CreateEvent(NULL, TRUE, FALSE, NULL);
+	OVERLAPPED OverLapWrt;
+	memset(&OverLapWrt, 0, sizeof(OVERLAPPED));
+	OverLapWrt.hEvent = hEventWrt;
+
 	while (true)
 	{
 		int size = 0;
 		int result = -1;
 
-		result = httpRequest(url, port, path, buffer, &size);
+		result = httpRequest(url, port, path, header, buffer, &size);
 		if (result == 0)
 		{
 			cout << "Response size:" << size << endl;
@@ -429,44 +474,51 @@ void requestThread(HANDLE hPipe)
 
 		if (result == 0 && size > 0)
 		{
-			result = resolveData(deviceCount, &timestamp, decompressSize, decompressBuffer, buffer, &size);
+			result = resolveData(&timestamp, graphSize, graphBuffer, buffer, &size);
 		}
 
-		if (result == 0 && hPipe != NULL && hPipe != INVALID_HANDLE_VALUE && clientConnected)
+		if (result == 0 && size > 0 && hPipe != NULL && hPipe != INVALID_HANDLE_VALUE && clientConnected)
 		{
 			DWORD dwWritten;
 			bool flag = false;
 
 			for (int i = 0; i < deviceCount; i++)
 			{
-				((DWORD *)writeBuffer)[1] = 0x00000000;
-				memcpy(&writeBuffer[8], &decompressBuffer[i * deviceSize], deviceSize);
-				if (!WriteFile(hPipe, writeBuffer, 5120, &dwWritten, NULL))
+				if (memcmp(&graphBuffer[i * deviceSize], &graphCache[i * deviceSize], deviceSize) == 0)
 				{
-					flag = true;
+					continue;
 				}
-			}
+				memcpy(&graphCache[i * deviceSize], &graphBuffer[i * deviceSize], deviceSize);
 
-			if (flag)
-			{
-				cout << "Response size:" << size << endl;
-			}
-
-			if (result == 0 && size > 0 && hPipe != NULL && hPipe != INVALID_HANDLE_VALUE && clientConnected)
-			{
-				DWORD dwWritten;
-				if (!WriteFile(hPipe, buffer, size, &dwWritten, NULL))
+				((DWORD*)writeBuffer)[0] = 0x00000000;
+				((DWORD*)writeBuffer)[1] = (DWORD)(writeSize + 8);
+				((WORD*)writeBuffer)[4] = 0x0001;
+				((WORD*)writeBuffer)[5] = 0x0001;
+				((WORD*)writeBuffer)[6] = (WORD)(i + 1);
+				((WORD*)writeBuffer)[7] = (WORD)(writeSize);
+				memcpy(&writeBuffer[16], &graphBuffer[i * deviceSize], deviceSize);
+				if (!WriteFile(hPipe, writeBuffer, writeSize, &dwWritten, &OverLapWrt))
 				{
-					cout << "Failed to write to pipe." << endl;
+					int error = GetLastError();
+					if (error == ERROR_IO_PENDING)
+					{
+						WaitForSingleObject(hEventWrt, (DWORD)-1);
+						i--;
+						continue;
+					}
+					cout << "Failed to write to pipe:" << error << endl;
+					flag = true;
+					break;
 				}
 			}
 		}
 
-		Sleep(1000);
+		Sleep(intervalValue);
 	}
 
 	delete[] buffer;
-	delete[] decompressBuffer;
+	delete[] graphBuffer;
+	delete[] graphCache;
 	delete[] writeBuffer;
 }
 

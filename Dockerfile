@@ -11,8 +11,9 @@ FROM ghcr.io/shinerising/wine-with-vnc:v0.0.6
 # Set correct environment variables
 ENV REQUEST_HOST localhost
 ENV REQUEST_PORT 80
-ENV REQUEST_PATH graph/simple
+ENV REQUEST_PATH api/graph/simple
 ENV STATION test
+ENV TEST_MODE false
 
 # Add supervisor conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
