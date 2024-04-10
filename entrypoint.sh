@@ -33,6 +33,8 @@ fi
 
 export WINEDLLOVERRIDES="mscoree,mshtml="
 
+/usr/bin/wine REG ADD "HKCU\Software\Wine\WineDbg" /v "ShowCrashDialog" /t REG_DWORD /d 0 /f
+
 crontab /etc/cron.d/screenshot-cron && cron -f &
 
 /usr/bin/supervisord
