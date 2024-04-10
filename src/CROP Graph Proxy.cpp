@@ -420,8 +420,7 @@ void requestThread(HANDLE hPipe)
 	string port = getenvwithdefault("REQUEST_PORT", "5182");
 	string prefix = getenvwithdefault("REQUEST_PATH", "api/graph/simple");
 	string station = getenvwithdefault("STATION", "test");
-	bool test = getenvwithdefault("TEST", "false") == "true";
-	test = true;
+	bool test = getenvwithdefault("TEST", "false") == "true"; 
 	string path = prefix + "?station=" + station;
 	string header = test ? "CROP-PATH: graph/simple\r\nCROP-TEST: true" : "CROP-PATH: graph/simple\r\n";
 	string interval = getenvwithdefault("INTERVAL", "1000");
