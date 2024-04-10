@@ -21,18 +21,6 @@ fi
 
 check_vnc_pass
 
-if [[ -n $SCREEN_WIDTH ]];then
-  export SCREEN_X="$SCREEN_WIDTH"
-else
-  export SCREEN_X="1920"
-fi
-
-if [[ -n $SCREEN_HEIGHT ]];then
-  export SCREEN_Y="$SCREEN_HEIGHT"
-else
-  export SCREEN_Y="1080"
-fi
-
 if [[ -n $USER_PASSWORD ]];then
   echo "docker:$USER_PASSWORD" | chpasswd
 fi
