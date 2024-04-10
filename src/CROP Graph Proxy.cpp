@@ -171,6 +171,7 @@ void messageThread(HANDLE hPipe)
 				{
 					break;
 				}
+				Sleep(100);
 			}
 		}
 		DisconnectNamedPipe(hPipe);
@@ -572,6 +573,7 @@ int main()
 		{
 			break;
 		}
+		Sleep(100);
 	}
 
 	// Close the pipe (automatically disconnects client too)
