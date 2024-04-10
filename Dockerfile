@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends build-essential cmake mingw-w64-i686-dev mingw-w64-tools g++-mingw-w64-i686 && \
     cmake -DCMAKE_TOOLCHAIN_FILE=mingw-w64-i686.cmake . && make
 
-FROM ghcr.io/shinerising/wine-with-vnc:v0.0.6
+FROM ghcr.io/shinerising/wine-with-vnc:v0.1.0
 
 # Set correct environment variables
 ENV REQUEST_HOST localhost
