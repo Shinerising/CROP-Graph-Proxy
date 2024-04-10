@@ -5,11 +5,11 @@ function check_vnc_pass {
     rm -f $VNC_PASSWD_PATH
     if [[ ! -d "/home/docker/.vnc" ]]; then mkdir -p /home/docker/.vnc;fi
     x11vnc -storepasswd "$VNC_PASSWORD" "$VNC_PASSWD_PATH"
-    export X11_ARGS="-forever -viewonly -rfbauth $VNC_PASSWD_PATH"
+    export X11_ARGS="-forever -shared -viewonly -rfbauth $VNC_PASSWD_PATH"
     chown docker $VNC_PASSWD_PATH
     chmod 600 $VNC_PASSWD_PATH
   else
-    export X11_ARGS="-forever -viewonly"
+    export X11_ARGS="-forever -shared -viewonly"
   fi
 }
 if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
