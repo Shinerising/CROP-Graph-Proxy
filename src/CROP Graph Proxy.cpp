@@ -494,7 +494,7 @@ void requestThread(HANDLE hPipe)
 				((DWORD*)writeBuffer)[1] = (DWORD)(writeSize + 8);
 				((WORD*)writeBuffer)[4] = 0x0001;
 				((WORD*)writeBuffer)[5] = 0x0001;
-				((WORD*)writeBuffer)[6] = (WORD)(i + 1);
+				((WORD*)writeBuffer)[6] = (WORD)(i);
 				((WORD*)writeBuffer)[7] = (WORD)(writeSize);
 				memcpy(&writeBuffer[16], &graphBuffer[i * deviceSize], deviceSize);
 				if (!WriteFile(hPipe, writeBuffer, writeSize, &dwWritten, &OverLapWrt))
