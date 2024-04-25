@@ -461,6 +461,7 @@ void requestThread(HANDLE hPipe)
 	memset(&OverLapWrt, 0, sizeof(OVERLAPPED));
 	OverLapWrt.hEvent = hEventWrt;
 
+	int count = 0;
 	while (true)
 	{
 		int size = 0;
@@ -484,11 +485,10 @@ void requestThread(HANDLE hPipe)
 
 			for (int i = 0; i < deviceCount; i++)
 			{
-				if (memcmp(&graphBuffer[i * deviceSize], &graphCache[i * deviceSize], deviceSize) == 0)
+				if (count % 10 != 0 && memcmp(&graphBuffer[i * deviceSize], &graphCache[i * deviceSize], deviceSize) == 0)
 				{
 					continue;
 				}
-				memcpy(&graphCache[i * deviceSize], &graphBuffer[i * deviceSize], deviceSize);
 
 				((DWORD*)writeBuffer)[0] = 0x00000000;
 				((DWORD*)writeBuffer)[1] = (DWORD)(writeSize + 8);
@@ -510,9 +510,14 @@ void requestThread(HANDLE hPipe)
 					flag = true;
 					break;
 				}
+				else
+				{
+					memcpy(&graphCache[i * deviceSize], &graphBuffer[i * deviceSize], deviceSize);
+				}
 			}
 		}
 
+		count++;
 		Sleep(intervalValue);
 	}
 
