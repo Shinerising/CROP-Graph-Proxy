@@ -148,6 +148,7 @@ HANDLE createNamedPipeline(string name)
 }
 
 bool clientConnected = false;
+int clientCount = 0;
 void messageThread(HANDLE hPipe)
 {
 	while (true)
@@ -155,6 +156,7 @@ void messageThread(HANDLE hPipe)
 		if (ConnectNamedPipe(hPipe, NULL) != FALSE) // wait for someone to connect to the pipe
 		{
 			clientConnected = true;
+			clientCount++;
 			cout << "connect success" << endl;
 			while (true)
 			{
@@ -426,7 +428,7 @@ void requestThread(HANDLE hPipe)
 	string prefix = getenvwithdefault("REQUEST_PATH", "api/graph/simple");
 	string station = getenvwithdefault("STATION", "test");
 	bool test = getenvwithdefault("TEST_MODE", "false") == "true";
-	bool useCache = getenvwithdefault("CACHE", "false") == "true";
+	bool useCache = getenvwithdefault("CACHE", "true") == "true";
 	string path = prefix + "?station=" + station;
 	string header = test ? "CROP-PATH: graph/simple\r\nCROP-TEST: true" : "CROP-PATH: graph/simple\r\n";
 	string interval = getenvwithdefault("INTERVAL", "1000");
@@ -461,6 +463,7 @@ void requestThread(HANDLE hPipe)
 	((WORD *)writeBuffer)[6] = 0x0000;
 	((WORD *)writeBuffer)[7] = 0x0000;
 
+	int clientIndex = 0;
 	int timestamp = 0;
 
 	HANDLE hEventWrt = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -472,6 +475,13 @@ void requestThread(HANDLE hPipe)
 	{
 		int size = 0;
 		int result = -1;
+
+		if (clientIndex != clientCount)
+		{
+			clientIndex = clientCount;
+			cout << "Clear cache" << endl;
+			memset(graphCache, 0, graphSize);
+		}
 
 		result = httpRequest(url, port, path, header, buffer, &size);
 		if (result == 0)
