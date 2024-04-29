@@ -382,7 +382,11 @@ int readDeviceCount(string filename)
 	FILE *fp = fopen(filename.c_str(), "rb");
 	if (fp == NULL)
 	{
+		int error = GetLastError();
 		cerr << "Failed to open file." << endl;
+		cerr << "Error code:" << error << endl;
+		cerr << "Error message:" << strerror(error) << endl;
+		cerr << "File name:" << filename << endl;
 		return -1;
 	}
 	// read the 5th line
@@ -421,11 +425,14 @@ void requestThread(HANDLE hPipe)
 	string port = getenvwithdefault("REQUEST_PORT", "5182");
 	string prefix = getenvwithdefault("REQUEST_PATH", "api/graph/simple");
 	string station = getenvwithdefault("STATION", "test");
-	bool test = getenvwithdefault("TEST_MODE", "false") == "true"; 
+	bool test = getenvwithdefault("TEST_MODE", "false") == "true";
+	bool useCache = getenvwithdefault("CACHE", "false") == "true";
 	string path = prefix + "?station=" + station;
 	string header = test ? "CROP-PATH: graph/simple\r\nCROP-TEST: true" : "CROP-PATH: graph/simple\r\n";
 	string interval = getenvwithdefault("INTERVAL", "1000");
 	int intervalValue = stoi(interval);
+	string delay = getenvwithdefault("DELAY", "1");
+	int delayValue = stoi(delay);
 
 	int deviceSize = 105;
 
@@ -461,7 +468,6 @@ void requestThread(HANDLE hPipe)
 	memset(&OverLapWrt, 0, sizeof(OVERLAPPED));
 	OverLapWrt.hEvent = hEventWrt;
 
-	int count = 0;
 	while (true)
 	{
 		int size = 0;
@@ -485,8 +491,8 @@ void requestThread(HANDLE hPipe)
 
 			for (int i = 0; i < deviceCount; i++)
 			{
-				Sleep(1);
-				if (false && memcmp(&graphBuffer[i * deviceSize], &graphCache[i * deviceSize], deviceSize) == 0)
+				Sleep(delayValue);
+				if (useCache && memcmp(&graphBuffer[i * deviceSize], &graphCache[i * deviceSize], deviceSize) == 0)
 				{
 					continue;
 				}
@@ -518,7 +524,6 @@ void requestThread(HANDLE hPipe)
 			}
 		}
 
-		count++;
 		Sleep(intervalValue);
 	}
 
