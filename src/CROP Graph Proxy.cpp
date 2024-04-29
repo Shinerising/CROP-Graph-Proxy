@@ -485,6 +485,7 @@ void requestThread(HANDLE hPipe)
 
 			for (int i = 0; i < deviceCount; i++)
 			{
+				Sleep(1);
 				if (count % 10 != 0 && memcmp(&graphBuffer[i * deviceSize], &graphCache[i * deviceSize], deviceSize) == 0)
 				{
 					continue;
