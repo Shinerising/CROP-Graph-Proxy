@@ -105,18 +105,18 @@ HANDLE createNamedPipeline(string name)
 	PSECURITY_DESCRIPTOR pSD = (PSECURITY_DESCRIPTOR)LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH);
 	if (pSD == NULL)
 	{
-		cout << "Failed to LocalAlloc." << endl;
+		cerr << "Failed to LocalAlloc." << endl;
 		return NULL;
 	}
 	if (!InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION))
 	{
-		cout << "Failed to InitializeSecurityDescriptor." << endl;
+		cerr << "Failed to InitializeSecurityDescriptor." << endl;
 		LocalFree((HLOCAL)pSD);
 		return NULL;
 	}
 	if (!SetSecurityDescriptorDacl(pSD, TRUE, (PACL)NULL, FALSE))
 	{
-		cout << "Failed to SetSecurityDescriptorDacl." << endl;
+		cerr << "Failed to SetSecurityDescriptorDacl." << endl;
 		LocalFree((HLOCAL)pSD);
 		return NULL;
 	}
@@ -139,7 +139,7 @@ HANDLE createNamedPipeline(string name)
 	);
 	if (hPipe == NULL || hPipe == INVALID_HANDLE_VALUE)
 	{
-		cout << "Failed to create outbound pipe instance.";
+		cerr << "Failed to create outbound pipe instance.";
 		// look up error code here using GetLastError()
 		system("pause");
 		return NULL;
@@ -196,7 +196,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (hSession == NULL)
 		{
-			cout << "Failed to open session." << endl;
+			cerr << "Failed to open session." << endl;
 			break;
 		}
 		hConnect = WinHttpConnect(
@@ -207,7 +207,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (hConnect == NULL)
 		{
-			cout << "Failed to connect." << endl;
+			cerr << "Failed to connect." << endl;
 			break;
 		}
 		hRequest = WinHttpOpenRequest(
@@ -221,7 +221,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (hRequest == NULL)
 		{
-			cout << "Failed to open request." << endl;
+			cerr << "Failed to open request." << endl;
 			break;
 		}
 		BOOL bHeaderRequestSent = WinHttpAddRequestHeaders(
@@ -232,7 +232,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (!bHeaderRequestSent)
 		{
-			cout << "Failed to add request headers." << endl;
+			cerr << "Failed to add request headers." << endl;
 			break;
 		}
 		BOOL bRequestSent = WinHttpSendRequest(
@@ -246,7 +246,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (!bRequestSent)
 		{
-			cout << "Failed to send request." << endl;
+			cerr << "Failed to send request." << endl;
 			break;
 		}
 		BOOL bResponseReceived = WinHttpReceiveResponse(
@@ -255,7 +255,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (!bResponseReceived)
 		{
-			cout << "Failed to receive response." << endl;
+			cerr << "Failed to receive response." << endl;
 			break;
 		}
 		DWORD dwSize = 0;
@@ -265,7 +265,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (!bResult)
 		{
-			cout << "Failed to query data." << endl;
+			cerr << "Failed to query data." << endl;
 			break;
 		}
 		// Report any errors.
@@ -281,12 +281,12 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 		);
 		if (!bResult)
 		{
-			cout << "Failed to query status code." << endl;
+			cerr << "Failed to query status code." << endl;
 			break;
 		}
 		if (dwStatusCode != HTTP_STATUS_OK)
 		{
-			cout << "Status code is not OK:" << dwStatusCode << endl;
+			cerr << "Status code is not OK:" << dwStatusCode << endl;
 			break;
 		}
 
@@ -299,7 +299,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 			char *pszOutBuffer = new char[dwSize + 1];
 			if (!pszOutBuffer)
 			{
-				cout << "Out of memory." << endl;
+				cerr << "Out of memory." << endl;
 				break;
 			}
 			// Read the data.
@@ -312,7 +312,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 			);
 			if (!bResult)
 			{
-				cout << "Failed to read data." << endl;
+				cerr << "Failed to read data." << endl;
 				break;
 			}
 			// do something with data in buffer
@@ -329,7 +329,7 @@ int httpRequest(string url, string port, string path, string headers, char *pBuf
 			);
 			if (!bResult)
 			{
-				cout << "Failed to query data." << endl;
+				cerr << "Failed to query data." << endl;
 				break;
 			}
 		}
@@ -368,7 +368,7 @@ int resolveData(int *timestamp, int graphSize, unsigned char *graphBuffer, char 
 	// copy to graph buffer
 	if (decodedData.size() > graphSize)
 	{
-		cout << "Graph buffer is not enough." << endl;
+		cerr << "Graph buffer is not enough." << endl;
 		return -1;
 	}
 
@@ -382,7 +382,7 @@ int readDeviceCount(string filename)
 	FILE *fp = fopen(filename.c_str(), "rb");
 	if (fp == NULL)
 	{
-		cout << "Failed to open file." << endl;
+		cerr << "Failed to open file." << endl;
 		return -1;
 	}
 	// read the 5th line
@@ -432,7 +432,7 @@ void requestThread(HANDLE hPipe)
 	int deviceCount = readDeviceCount("graph\\graph.dat");
 	if (deviceCount == -1)
 	{
-		cout << "Failed to read device count." << endl;
+		cerr << "Failed to read device count." << endl;
 		deviceCount = 120;
 	}
 	cout << "Device Count:" << deviceCount << endl;
@@ -507,7 +507,7 @@ void requestThread(HANDLE hPipe)
 						i--;
 						continue;
 					}
-					cout << "Failed to write to pipe:" << error << endl;
+					cerr << "Failed to write to pipe:" << error << endl;
 					flag = true;
 					break;
 				}
